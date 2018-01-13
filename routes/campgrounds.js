@@ -4,15 +4,31 @@ var Campground = require("../models/campground");
 var middleware = require("../middleware");
 
 router.get("/", function(req, res) {
-    
+    //eval(require("locus"));
+    var noMatch = null;
+    if (req.query.search) {
+        const regex = new RegExp(escapeRegex(req.query.search), 'gi');
+         Campground.find({name: regex}, function(err, allcampgrounds) {
+            if (err) {
+                console.log(err);
+            } else {
+             
+                if (allcampgrounds.length < 1) {
+                    noMatch = "No campgrounds match your search. Please try again...";
+                }
+                res.render("campgrounds/index", {campgrounds: allcampgrounds, noMatch: noMatch});
+            }
+        });
+    } else {
     // get from database
-    Campground.find({}, function(err, allcampgrounds) {
-        if (err) {
-            console.log(err);
-        } else {
-            res.render("campgrounds/index", {campgrounds: allcampgrounds} );
-        }
-    })
+        Campground.find({}, function(err, allcampgrounds) {
+            if (err) {
+                console.log(err);
+            } else {
+                res.render("campgrounds/index", {campgrounds: allcampgrounds, noMatch: noMatch} );
+            }
+        })
+     }
 });
 
 // route post page
@@ -85,4 +101,8 @@ router.delete("/:id", middleware.checkCampgroundOwnership, function(req, res) {
    }); 
 });
 
+
+function escapeRegex(text) {
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+};
 module.exports = router;
