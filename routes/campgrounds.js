@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 var Campground = require("../models/campground");
 var middleware = require("../middleware");
+var geocoder = require("geocoder");
 var multer = require('multer');
 var storage = multer.diskStorage({
   filename: function(req, file, callback) {
@@ -55,7 +56,7 @@ router.get("/", function(req, res) {
 
 // route post page
 router.post("/", middleware.isLoggedIn, upload.single('image'), function(req, res)  {
-    cloudinary.uploader.upload(req.file.path, function(result) {
+  cloudinary.uploader.upload(req.file.path, function(result) {
   // add cloudinary url for the image to the campground object under image property
   req.body.campground.image = result.secure_url;
   // add author to campground
@@ -63,12 +64,18 @@ router.post("/", middleware.isLoggedIn, upload.single('image'), function(req, re
     id: req.user._id,
     username: req.user.username
   }
-  Campground.create(req.body.campground, function(err, campground) {
-    if (err) {
-      req.flash('error', err.message);
-      return res.redirect('back');
-    }
-    res.redirect('/campgrounds/' + campground.id);
+  geocoder.geocode(req.body.location, function(err, data) {
+      req.body.campground.location = data.results[0].formatted_address;
+      req.body.campground.lat = data.results[0].geometry.location.lat;
+      req.body.campground.lng = data.results[0].geometry.location.lng;
+  
+      Campground.create(req.body.campground, function(err, campground) {
+        if (err) {
+          req.flash('error', err.message);
+          return res.redirect('back');
+        }
+        res.redirect('/campgrounds/' + campground.id);
+      });
   });
     });
 });
@@ -101,13 +108,18 @@ router.get("/:id/edit", middleware.checkCampgroundOwnership, function(req, res) 
 //update route
 
 router.put("/:id", middleware.checkCampgroundOwnership, function(req, res) {
-   
+   geocoder.geocode(req.body.location, function (err, data) {
+    req.body.campground.lat = data.results[0].geometry.location.lat;
+    req.body.campground.lng = data.results[0].geometry.location.lng;
+    req.body.campground.location = data.results[0].formatted_address;
+    
    Campground.findByIdAndUpdate(req.params.id, req.body.campground, function(err, updatedCamground) {
        if (err) {
            res.redirect("/campgrounds");
        } else {
            res.redirect("/campgrounds/" + req.params.id);
        }
+       });
    }); 
 });
 

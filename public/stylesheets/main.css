@@ -1,5 +1,6 @@
 .thumbnail img {
     width: 100%;
+
 }
 
 .thumbnail {
@@ -11,4 +12,9 @@
 /*}*/
 #delete {
     display: inline;
+}
+
+#map {
+    height: 400px;
+    width: 100%;
 }
